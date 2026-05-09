@@ -768,7 +768,11 @@ function MagicLinkSection({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =
     })
     setVerifying(false)
     if (error) { onToast('err', '驗證失敗：' + error.message); return }
-    onToast('ok', '登入成功！')
+    const { setSessionExpiry, pushUnsyncedToSupabase, pullFromSupabase } = await import('../lib/localDB')
+    setSessionExpiry()
+    pushUnsyncedToSupabase().catch(() => {})
+    pullFromSupabase().catch(() => {})
+    onToast('ok', '登入成功！雲端資料同步中...')
   }
 
   async function handleSignOut() {

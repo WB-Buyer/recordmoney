@@ -11,9 +11,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
   auth: {
     persistSession: true,
+    storageKey: 'mlk_auth',
+    storage: window.localStorage,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-  }
+  },
 })
 
 async function getUserId(): Promise<string> {

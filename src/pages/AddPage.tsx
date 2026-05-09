@@ -4,7 +4,7 @@ import {
   CATEGORIES, CATEGORY_LIST, CATEGORY_EMOJI, supabase,
   type Category, type Expense, type ExpenseInsert,
 } from '../lib/supabase'
-import { getTransactions, addTransaction, removeTransaction, editTransaction } from '../lib/storage'
+import { getTransactionsByMonth, getTransactions as getLocalTransactions, deleteTransaction, updateTransaction } from '../lib/localDB'
 import { AI_CATEGORY_MAP } from '../lib/categories'
 import { CheckCircle, AlertCircle, Loader, Pencil, ChevronDown, Upload } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -186,45 +186,51 @@ function ManualTab() {
     const num = parseAmount(amountStr)
     if (!num) { showToast('err', '請輸入有效金額'); return }
     setLoading(true)
-    console.log('[handleSave] start, type:', type, 'amount:', num)
     try {
-      // 信用卡付款時查詢 credit_card_id
+      const { addTransaction: localAdd, deductFromAccount } = await import('../lib/localDB')
+
+      // 信用卡 id（本地查詢，fallback null）
       let credit_card_id: string | null = null
       if (type === 'expense' && payment === 'credit') {
-        console.log('[handleSave] fetching credit_cards...')
-        const { data: cards, error: cardErr } = await supabase.from('credit_cards').select('id, card_name')
-        console.log('[handleSave] credit_cards result:', cards, 'error:', cardErr)
-        const match = (cards ?? []).find((c: { id: string; card_name: string }) => c.card_name === cardName)
-        credit_card_id = match?.id ?? null
+        try {
+          const { data: cards } = await supabase.from('credit_cards').select('id, card_name')
+          const match = (cards ?? []).find((c: any) => c.card_name === cardName)
+          credit_card_id = match?.id ?? null
+        } catch { /* 無網路時忽略 */ }
       }
 
-      const payload: ExpenseInsert = {
+      // 本地儲存（立即完成，不等網路）
+      localAdd({
         date,
-        category: type === 'income' ? incomeCat : category,
-        subcategory: type === 'income' ? '' : subcategory,
         amount: num,
         type,
+        category: type === 'income' ? incomeCat : category,
+        subcategory: type === 'income' ? '' : subcategory,
         payment_method: type === 'income' ? 'cash' : payment,
         payment: type === 'income'
           ? incomeAccount
           : payment === 'credit' ? cardName
           : payment === 'transfer' ? account
           : '現金',
+        note: note || '',
         credit_card_id,
+        bank_account_id: null,
+        source: 'manual',
+      })
+
+      // 匯款時從帳戶扣款
+      if (type === 'expense' && payment === 'transfer' && account) {
+        deductFromAccount(account, num)
       }
-      if (note) payload.note = note
-      console.log('[handleSave] calling addTransaction with payload:', JSON.stringify(payload))
-      await addTransaction(payload)
-      console.log('[handleSave] addTransaction succeeded')
+
       showToast('ok', '記帳成功！')
       setAmountStr('')
       setNote('')
       setTimeout(() => navigate('/add?tab=records'), 800)
     } catch (err: any) {
-      console.error('[handleSave] 儲存失敗:', err)
+      console.error('儲存失敗:', err)
       showToast('err', err.message ?? '儲存失敗，請重試')
     } finally {
-      console.log('[handleSave] finally: setLoading(false)')
       setLoading(false)
     }
   }
@@ -453,17 +459,16 @@ function RecordsTab() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     setLoading(true)
     try {
-      const data = await getTransactions(
-        mode === 'month' ? year : undefined,
-        mode === 'month' ? month : undefined,
-      )
-      setRecords(data as Expense[])
+      const data = mode === 'month'
+        ? getTransactionsByMonth(year, month)
+        : getLocalTransactions().filter(r => r.date >= startDate && r.date <= endDate)
+      setRecords(data as unknown as Expense[])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }, [mode, year, month])
+  }, [mode, year, month, startDate, endDate])
 
   useEffect(() => { load() }, [load])
 
@@ -791,7 +796,7 @@ function RecordsTab() {
           onClose={() => setEditRecord(null)}
           onSave={async (updated) => {
             try {
-              await editTransaction(editRecord.id, updated)
+              updateTransaction(editRecord.id, { ...updated, note: updated.note ?? '' })
               setRecords(prev => prev.map(r => r.id === editRecord.id ? ({ ...r, ...updated, type: (updated.type as 'expense' | 'income' | undefined) ?? r.type }) : r))
               setEditRecord(null)
             } catch (e) { console.error(e) }
@@ -800,7 +805,7 @@ function RecordsTab() {
             if (!confirm('確定刪除？')) return
             setDeleting(editRecord.id)
             try {
-              await removeTransaction(editRecord.id)
+              deleteTransaction(editRecord.id)
               setRecords(prev => prev.filter(r => r.id !== editRecord.id))
               setEditRecord(null)
             } catch (e) { console.error(e) }

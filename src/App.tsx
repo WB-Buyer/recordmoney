@@ -8,7 +8,7 @@ import SavingsPage from './pages/SavingsPage'
 import SettingsPage from './pages/SettingsPage'
 import CreditCardSummaryPage from './pages/CreditCardSummaryPage'
 import { supabase } from './lib/supabase'
-import { syncLocalToSupabase } from './lib/storage'
+import { pullFromSupabase, pushUnsyncedToSupabase, setSessionExpiry } from './lib/localDB'
 
 export default function App() {
   const [loading, setLoading] = useState(true)
@@ -28,7 +28,9 @@ export default function App() {
         setLoading(false)
         if (event === 'SIGNED_IN' && session) {
           console.log('[Auth] 登入成功：', session.user.email)
-          await syncLocalToSupabase()
+          setSessionExpiry()
+          pushUnsyncedToSupabase().catch(() => {})
+          pullFromSupabase().catch(() => {})
         }
       }
     )

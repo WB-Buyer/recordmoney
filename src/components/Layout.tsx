@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Home, PenLine, List, Receipt, TrendingUp, Target, Settings, CreditCard } from 'lucide-react'
+import { shouldWarnSessionExpiry, isSessionExpired, getSessionDaysLeft } from '../lib/localDB'
 
 const sidebarItems = [
   { to: '/',        label: '總覽首頁', Icon: Home,       exact: true },
@@ -19,6 +21,53 @@ const bottomNavItems = [
   { to: '/savings', label: '目標', Icon: Target,     exact: false },
   { to: '/settings',label: '設定', Icon: Settings,   exact: false },
 ]
+
+function SessionWarningBar() {
+  const [show, setShow] = useState(false)
+  const [days, setDays] = useState<number | null>(null)
+  const [expired, setExpired] = useState(false)
+
+  useEffect(() => {
+    const d = getSessionDaysLeft()
+    setDays(d)
+    setShow(shouldWarnSessionExpiry() || isSessionExpired())
+    setExpired(isSessionExpired())
+  }, [])
+
+  if (!show) return null
+
+  return (
+    <div style={{
+      background: expired ? '#C0554A' : '#C8A96A',
+      color: '#fff',
+      padding: '8px 16px',
+      fontSize: 12,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      flexShrink: 0,
+    }}>
+      <span>
+        {expired
+          ? '☁️ 雲端備份已暫停，本機資料正常'
+          : `☁️ 雲端備份將於 ${days} 天後到期`}
+      </span>
+      <button
+        onClick={() => window.location.href = '/settings'}
+        style={{
+          background: 'rgba(255,255,255,0.25)',
+          border: 'none', borderRadius: 6,
+          color: '#fff', padding: '3px 10px',
+          fontSize: 11, cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        {expired ? '重新連線' : '立即續期'}
+      </button>
+    </div>
+  )
+}
 
 export default function Layout() {
   const location = useLocation()
@@ -41,7 +90,11 @@ export default function Layout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100svh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100svh' }}>
+
+      <SessionWarningBar />
+
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
 
       {/* ── 電腦側欄 ── */}
       <aside className="desktop-sidebar">
@@ -105,6 +158,8 @@ export default function Layout() {
           )
         })}
       </nav>
+
+      </div>{/* end flex row */}
 
       <style>{`
         /* 側欄 */

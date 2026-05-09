@@ -1,24 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Pencil, Check, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-
-// ─── 帳戶定義 ─────────────────────────────────────────────────
-interface BankAccount {
-  id: string
-  name: string
-  currency: 'TWD' | 'USD'
-  balance: number
-}
-
-const DEFAULT_ACCOUNTS: Omit<BankAccount, 'id'>[] = [
-  { name: '台新 Richart',  currency: 'TWD', balance: 0 },
-  { name: '台新薪轉',      currency: 'TWD', balance: 0 },
-  { name: '國泰 Cube',     currency: 'TWD', balance: 0 },
-  { name: '國泰美金',      currency: 'USD', balance: 0 },
-  { name: '永豐大戶',      currency: 'TWD', balance: 0 },
-  { name: '玉山',          currency: 'TWD', balance: 0 },
-  { name: '富邦',          currency: 'TWD', balance: 0 },
-]
+import { getAccounts, updateAccountBalance, pullFromSupabase, type LocalAccount } from '../lib/localDB'
 
 // ─── Toast ─────────────────────────────────────────────────────
 function Toast({ msg, type }: { msg: string; type: 'ok' | 'err' }) {
@@ -37,23 +19,20 @@ function AccountRow({
   account,
   onSave,
 }: {
-  account: BankAccount
-  onSave: (id: string, balance: number) => Promise<void>
+  account: LocalAccount
+  onSave: (id: string, balance: number) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal]         = useState(String(account.balance))
-  const [saving, setSaving]   = useState(false)
-
-  async function handleConfirm() {
-    const n = parseFloat(val)
-    if (isNaN(n)) { setVal(String(account.balance)); setEditing(false); return }
-    setSaving(true)
-    await onSave(account.id, n)
-    setSaving(false)
-    setEditing(false)
-  }
 
   const symbol = account.currency === 'USD' ? 'USD ' : '$'
+
+  function handleConfirm() {
+    const n = parseFloat(val)
+    if (isNaN(n)) { setVal(String(account.balance)); setEditing(false); return }
+    onSave(account.id, n)
+    setEditing(false)
+  }
 
   return (
     <div style={{
@@ -82,7 +61,6 @@ function AccountRow({
             />
             <button
               onClick={handleConfirm}
-              disabled={saving}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5E9B6A', padding: 4 }}
             >
               <Check size={16} />
@@ -114,9 +92,8 @@ function AccountRow({
 
 // ─── SavingsPage 主元件（帳戶總覽）────────────────────────────
 export default function SavingsPage() {
-  const [accounts, setAccounts]   = useState<BankAccount[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [toast, setToast]         = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
+  const [accounts, setAccounts] = useState<LocalAccount[]>(() => getAccounts())
+  const [toast, setToast]       = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
 
   function showToast(msg: string, type: 'ok' | 'err' = 'ok') {
     setToast({ msg, type })
@@ -124,75 +101,16 @@ export default function SavingsPage() {
   }
 
   useEffect(() => {
-    async function load() {
-      setLoading(true)
-      let loaded: BankAccount[] = []
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          const raw = localStorage.getItem('bank_accounts')
-          if (raw) {
-            loaded = JSON.parse(raw)
-          } else {
-            loaded = DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, id: String(i + 1) }))
-            localStorage.setItem('bank_accounts', JSON.stringify(loaded))
-          }
-        } else {
-          const { data, error } = await supabase
-            .from('bank_accounts')
-            .select('*')
-            .order('created_at')
-
-          if (error) throw error
-
-          if (!data || data.length === 0) {
-            const toInsert = DEFAULT_ACCOUNTS.map(a => ({ ...a, user_id: user.id }))
-            const { data: inserted, error: insertErr } = await supabase
-              .from('bank_accounts')
-              .insert(toInsert)
-              .select()
-            if (insertErr) throw insertErr
-            loaded = inserted ?? []
-          } else {
-            loaded = data
-          }
-        }
-      } catch (e: any) {
-        const raw = localStorage.getItem('bank_accounts')
-        if (raw) {
-          loaded = JSON.parse(raw)
-        }
-        console.warn('bank_accounts load error:', e.message)
-      } finally {
-        if (loaded.length === 0) {
-          loaded = DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, id: String(i + 1) }))
-        }
-        setAccounts(loaded)
-        setLoading(false)
-      }
-    }
-    load()
+    // 背景從雲端更新（有登入才執行）
+    pullFromSupabase().then(() => {
+      setAccounts(getAccounts())
+    }).catch(() => {})
   }, [])
 
-  async function handleSave(id: string, balance: number) {
+  function handleSave(id: string, balance: number) {
+    updateAccountBalance(id, balance)
     setAccounts(prev => prev.map(a => a.id === id ? { ...a, balance } : a))
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { error } = await supabase
-          .from('bank_accounts')
-          .update({ balance, updated_at: new Date().toISOString() })
-          .eq('id', id)
-        if (error) throw error
-      } else {
-        const updated = accounts.map(a => a.id === id ? { ...a, balance } : a)
-        localStorage.setItem('bank_accounts', JSON.stringify(updated))
-      }
-      showToast('餘額已更新')
-    } catch (e: any) {
-      showToast('儲存失敗：' + e.message, 'err')
-    }
+    showToast('餘額已更新')
   }
 
   const twdAccounts = accounts.filter(a => a.currency === 'TWD')
@@ -225,25 +143,17 @@ export default function SavingsPage() {
         {/* 台幣帳戶 */}
         <div className="card">
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6B5E52', marginBottom: 4 }}>🏦 台幣帳戶</div>
-          {loading ? (
-            <div style={{ fontSize: 12, color: '#9E9087', padding: '12px 0' }}>載入中...</div>
-          ) : (
-            twdAccounts.map(a => (
-              <AccountRow key={a.id} account={a} onSave={handleSave} />
-            ))
-          )}
+          {twdAccounts.map(a => (
+            <AccountRow key={a.id} account={a} onSave={handleSave} />
+          ))}
         </div>
 
         {/* 美金帳戶 */}
         <div className="card">
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6B5E52', marginBottom: 4 }}>💵 美金帳戶</div>
-          {loading ? (
-            <div style={{ fontSize: 12, color: '#9E9087', padding: '12px 0' }}>載入中...</div>
-          ) : (
-            usdAccounts.map(a => (
-              <AccountRow key={a.id} account={a} onSave={handleSave} />
-            ))
-          )}
+          {usdAccounts.map(a => (
+            <AccountRow key={a.id} account={a} onSave={handleSave} />
+          ))}
         </div>
 
         {/* 說明 */}
