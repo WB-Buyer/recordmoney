@@ -796,7 +796,11 @@ function RecordsTab() {
           onClose={() => setEditRecord(null)}
           onSave={async (updated) => {
             try {
-              updateTransaction(editRecord.id, { ...updated, note: updated.note ?? '' })
+              updateTransaction(editRecord.id, {
+                ...updated,
+                note: updated.note ?? '',
+                type: updated.type as 'expense' | 'income' | undefined,
+              })
               setRecords(prev => prev.map(r => r.id === editRecord.id ? ({ ...r, ...updated, type: (updated.type as 'expense' | 'income' | undefined) ?? r.type }) : r))
               setEditRecord(null)
             } catch (e) { console.error(e) }
