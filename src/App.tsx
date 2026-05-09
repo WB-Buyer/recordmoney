@@ -29,8 +29,10 @@ export default function App() {
         if (event === 'SIGNED_IN' && session) {
           console.log('[Auth] 登入成功：', session.user.email)
           setSessionExpiry()
-          pushUnsyncedToSupabase().catch(() => {})
-          pullFromSupabase().catch(() => {})
+          // 先推送本地未同步的資料
+          await pushUnsyncedToSupabase()
+          // 再從雲端拉取最新資料
+          await pullFromSupabase()
         }
       }
     )
