@@ -155,21 +155,30 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
       setCats(prev => prev.map(c => c.cat === item.cat ? { cat: name.trim() as Category, subs: newSubs } : c))
       // 寫入 Supabase（只有登入時才同步）
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user?.id) {
-          const { error } = await supabase
-            .from('categories')
-            .update({ name: name.trim() })
-            .eq('name', item.cat)
-            .eq('user_id', session.user.id)
-          if (error) throw error
-        }
-        onToast('ok', `「${name.trim()}」已儲存`)
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('操作逾時（10秒），請檢查網路')), 10000)
+        )
+        await Promise.race([
+          (async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user?.id) {
+              const { error } = await supabase
+                .from('categories')
+                .update({ name: name.trim() })
+                .eq('name', item.cat)
+                .eq('user_id', session.user.id)
+              if (error) throw error
+            }
+            onToast('ok', `「${name.trim()}」已儲存`)
+          })(),
+          timeout,
+        ])
       } catch (e: any) {
         onToast('err', '儲存失敗：' + (e.message ?? '資料表不存在或無權限'))
+      } finally {
+        setSaving(false)
+        onClose()
       }
-      setSaving(false)
-      onClose()
     }
 
     return (
@@ -211,19 +220,28 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
       const newSubs = subs.split('\n').map(s => s.trim()).filter(Boolean)
       setCats(prev => [...prev, { cat: name.trim() as Category, subs: newSubs }])
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user?.id) {
-          const { error } = await supabase
-            .from('categories')
-            .insert({ name: name.trim(), parent_id: null, user_id: session.user.id, sort_order: 0 })
-          if (error) throw error
-        }
-        onToast('ok', `「${name.trim()}」已新增`)
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('操作逾時（10秒），請檢查網路')), 10000)
+        )
+        await Promise.race([
+          (async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user?.id) {
+              const { error } = await supabase
+                .from('categories')
+                .insert({ name: name.trim(), parent_id: null, user_id: session.user.id, sort_order: 0 })
+              if (error) throw error
+            }
+            onToast('ok', `「${name.trim()}」已新增`)
+          })(),
+          timeout,
+        ])
       } catch (e: any) {
         onToast('err', '新增失敗：' + (e.message ?? '資料表不存在或無權限'))
+      } finally {
+        setSaving(false)
+        onClose()
       }
-      setSaving(false)
-      onClose()
     }
 
     return (
@@ -747,8 +765,8 @@ function MagicLinkSection({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email) setUserEmail(user.email)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) setUserEmail(session.user.email)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUserEmail(session?.user?.email ?? null)
