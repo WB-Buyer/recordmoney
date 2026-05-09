@@ -9,23 +9,26 @@ import SettingsPage from './pages/SettingsPage'
 import CreditCardSummaryPage from './pages/CreditCardSummaryPage'
 import { supabase } from './lib/supabase'
 import { pullFromSupabase, pushUnsyncedToSupabase, setSessionExpiry } from './lib/localDB'
+import type { User } from '@supabase/supabase-js'
 
 export default function App() {
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    // 先取得目前 session，取得後解除 loading
+    // 先從 localStorage 恢復既有 session，完成後才解除 loading
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         console.log('[Auth] 已有 session：', session.user.id)
+        setUser(session.user)
       }
-      setLoading(false)
+      setLoading(false)  // 唯一解除 loading 的地方，確保 session 已確認
     })
 
-    // 監聽登入狀態變化：每次變化都解除 loading，登入後同步本機資料
+    // 監聽後續登入/登出狀態變化（不再負責解除 loading）
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setLoading(false)
+        setUser(session?.user ?? null)
         if (event === 'SIGNED_IN' && session) {
           console.log('[Auth] 登入成功：', session.user.email)
           setSessionExpiry()
