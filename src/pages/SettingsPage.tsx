@@ -822,17 +822,26 @@ function MagicLinkSection({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check session immediately from localStorage
+    let mounted = true
+
+    // Get session immediately
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email) setUserEmail(session.user.email)
+      if (mounted && session?.user?.email) {
+        setUserEmail(session.user.email)
+      }
     })
 
-    // Also listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user?.email ?? null)
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (mounted) {
+        setUserEmail(session?.user?.email ?? null)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function handleSendOtp() {
