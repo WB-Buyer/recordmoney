@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+:root {
+  --milk: #F5F0E8;
+  --milk-deep: #DDD5C8;
+  --milk-mid: #EAE3D8;
+  --milk-card: #F0EAE0;
+  --text-dark: #2C2820;
+  --text-mid: #6B5E52;
+  --text-light: #9E9087;
+  --danger: #C0554A;
+  --success: #5E9B6A;
+  --accent-amber: #C8A96A;
+  --accent-blue: #8FAFC0;
+  --accent-purple: #9B8FC0;
+
+  font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
+  font-size: 16px;
+  color: var(--text-dark);
+  background: var(--milk);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--milk);
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* 捲軸美化 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--milk-mid); }
+::-webkit-scrollbar-thumb { background: var(--accent-amber); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #A8893A; }
+
+/* 全域卡片 */
+.card {
+  background: var(--milk-card);
+  border-radius: 14px;
+  border: 1px solid rgba(180,160,130,0.35);
+  padding: 12px 14px;
+}
+
+/* 儲存按鈕 */
+.save-btn {
+  width: 100%;
+  background: #2C2820;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.save-btn:hover:not(:disabled) { opacity: 0.85; }
+
+/* 小型按鈕 */
+.sbtn {
+  background: rgba(100,80,60,0.1);
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 11px;
+  color: #6B5E52;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.sbtn:hover { background: rgba(100,80,60,0.18); }
+
+/* 輸入框 */
+.finp {
+  background: #F0EAE0;
+  border: 1px solid rgba(180,160,130,0.45);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: #2C2820;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.finp:focus { border-color: rgba(140,110,80,0.7); }
+
+select.finp {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B5E52' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+/* 分隔線 */
+.divider {
+  height: 1px;
+  background: rgba(180,160,130,0.25);
+  margin: 8px 0;
+}
+
+/* Chip 元件 */
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.chip-green  { background: #EAF3DE; color: #27500A; }
+.chip-amber  { background: #FAEEDA; color: #633806; }
+.chip-blue   { background: #E6F1FB; color: #0C447C; }
+.chip-red    { background: #FCEBEB; color: #791F1F; }
+.chip-purple { background: #EEEDFE; color: #3C3489; }
+
+/* 頁面標題列 */
+.page-title {
+  padding: 14px 18px 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2C2820;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Tab 元件 */
+.tab {
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid rgba(180,160,130,0.4);
+  color: #6B5E52;
+  background: #F0EAE0;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.tab.active {
+  background: #2C2820;
+  color: white;
+  border-color: #2C2820;
+}
+
+/* 主分類 Pill */
+.cat-pill {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1px solid rgba(180,160,130,0.4);
+  color: #6B5E52;
+  background: #F0EAE0;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.cat-pill.active {
+  background: #8B7355;
+  color: white;
+  border-color: #8B7355;
+}
+
+/* 小分類 Pill */
+.subcat-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  border: 1px solid rgba(180,160,130,0.35);
+  color: #6B5E52;
+  background: #F0EAE0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.subcat-pill.active {
+  background: #DDD5C8;
+  color: #2C2820;
+  font-weight: 700;
+}
+
+/* 數字鍵盤按鍵 */
+.key {
+  background: #F0EAE0;
+  border: 1px solid rgba(180,160,130,0.4);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2C2820;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.key:hover { background: #E8E0D4; }
+.key:active { background: #DDD5C8; }
+/* 問題 2：功能按鍵（÷ × − + % C ⌫ =）放大 */
+.key.operator { color: #6B5E52; font-size: 22px; min-height: 44px; font-weight: 500; }
+.key.delete   { color: #C0554A; font-size: 22px; min-height: 44px; font-weight: 500; }
+.key.equal { background: #8B7355; color: #fff; font-weight: 700; }
+.key.equal:hover { background: #7A6348; }
+.key.equal:active { background: #6B5540; }
+
+/* 通用動畫 */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

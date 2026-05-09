@@ -1,0 +1,26 @@
+{
+  "name": "Molly's 記帳本",
+  "short_name": "記帳本",
+  "description": "Molly's 個人財務管理 App",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F0E8",
+  "theme_color": "#DDD5C8",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity"]
+}
