@@ -126,48 +126,48 @@ export default function SavingsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
+      let loaded: BankAccount[] = []
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
           const raw = localStorage.getItem('bank_accounts')
           if (raw) {
-            setAccounts(JSON.parse(raw))
+            loaded = JSON.parse(raw)
           } else {
-            const defaults = DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, id: String(i + 1) }))
-            setAccounts(defaults)
-            localStorage.setItem('bank_accounts', JSON.stringify(defaults))
+            loaded = DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, id: String(i + 1) }))
+            localStorage.setItem('bank_accounts', JSON.stringify(loaded))
           }
-          return
-        }
-
-        const { data, error } = await supabase
-          .from('bank_accounts')
-          .select('*')
-          .order('created_at')
-
-        if (error) throw error
-
-        if (!data || data.length === 0) {
-          const toInsert = DEFAULT_ACCOUNTS.map(a => ({ ...a, user_id: user.id }))
-          const { data: inserted, error: insertErr } = await supabase
-            .from('bank_accounts')
-            .insert(toInsert)
-            .select()
-          if (insertErr) throw insertErr
-          setAccounts(inserted ?? [])
         } else {
-          setAccounts(data)
+          const { data, error } = await supabase
+            .from('bank_accounts')
+            .select('*')
+            .order('created_at')
+
+          if (error) throw error
+
+          if (!data || data.length === 0) {
+            const toInsert = DEFAULT_ACCOUNTS.map(a => ({ ...a, user_id: user.id }))
+            const { data: inserted, error: insertErr } = await supabase
+              .from('bank_accounts')
+              .insert(toInsert)
+              .select()
+            if (insertErr) throw insertErr
+            loaded = inserted ?? []
+          } else {
+            loaded = data
+          }
         }
       } catch (e: any) {
         const raw = localStorage.getItem('bank_accounts')
         if (raw) {
-          setAccounts(JSON.parse(raw))
-        } else {
-          const defaults = DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, id: String(i + 1) }))
-          setAccounts(defaults)
+          loaded = JSON.parse(raw)
         }
         console.warn('bank_accounts load error:', e.message)
       } finally {
+        if (loaded.length === 0) {
+          loaded = DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, id: String(i + 1) }))
+        }
+        setAccounts(loaded)
         setLoading(false)
       }
     }

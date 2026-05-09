@@ -8,7 +8,7 @@ const sidebarItems = [
   { to: '/add?tab=bills',   label: '帳單管理', Icon: Receipt, exact: false, navTo: '/add', param: 'bills' },
   { to: '/credit-card-summary', label: '信用卡總覽', Icon: CreditCard, exact: false },
   { to: '/stats',   label: '投資組合', Icon: TrendingUp,  exact: false },
-  { to: '/savings', label: '儲蓄目標', Icon: Target,      exact: false },
+  { to: '/savings', label: '帳戶總覽', Icon: Target,      exact: false },
   { to: '/settings',label: '設定',    Icon: Settings,    exact: false },
 ]
 
