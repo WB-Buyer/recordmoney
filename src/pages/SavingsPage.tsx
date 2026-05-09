@@ -20,17 +20,17 @@ function AccountRow({
   onSave,
 }: {
   account: LocalAccount
-  onSave: (id: string, balance: number) => void
+  onSave: (id: string, balance: number) => Promise<void>
 }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal]         = useState(String(account.balance))
 
   const symbol = account.currency === 'USD' ? 'USD ' : '$'
 
-  function handleConfirm() {
+  async function handleConfirm() {
     const n = parseFloat(val)
     if (isNaN(n)) { setVal(String(account.balance)); setEditing(false); return }
-    onSave(account.id, n)
+    await onSave(account.id, n)
     setEditing(false)
   }
 
@@ -92,7 +92,8 @@ function AccountRow({
 
 // ─── SavingsPage 主元件（帳戶總覽）────────────────────────────
 export default function SavingsPage() {
-  const [accounts, setAccounts] = useState<LocalAccount[]>(() => getAccounts())
+  const [accounts, setAccounts] = useState<LocalAccount[]>([])
+  const [loading, setLoading]   = useState(true)
   const [toast, setToast]       = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
 
   function showToast(msg: string, type: 'ok' | 'err' = 'ok') {
@@ -101,14 +102,20 @@ export default function SavingsPage() {
   }
 
   useEffect(() => {
+    // 直接從本地讀取，立即顯示
+    const local = getAccounts()
+    setAccounts(local)
+    setLoading(false)
+
     // 背景從雲端更新（有登入才執行）
     pullFromSupabase().then(() => {
       setAccounts(getAccounts())
     }).catch(() => {})
   }, [])
 
-  function handleSave(id: string, balance: number) {
-    updateAccountBalance(id, balance)
+  async function handleSave(id: string, balance: number) {
+    const { updateAccountBalance: update } = await import('../lib/localDB')
+    update(id, balance)
     setAccounts(prev => prev.map(a => a.id === id ? { ...a, balance } : a))
     showToast('餘額已更新')
   }
@@ -143,7 +150,9 @@ export default function SavingsPage() {
         {/* 台幣帳戶 */}
         <div className="card">
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6B5E52', marginBottom: 4 }}>🏦 台幣帳戶</div>
-          {twdAccounts.map(a => (
+          {loading ? (
+            <div style={{ fontSize: 12, color: '#9E9087', padding: '12px 0' }}>載入中...</div>
+          ) : twdAccounts.map(a => (
             <AccountRow key={a.id} account={a} onSave={handleSave} />
           ))}
         </div>
@@ -151,7 +160,9 @@ export default function SavingsPage() {
         {/* 美金帳戶 */}
         <div className="card">
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6B5E52', marginBottom: 4 }}>💵 美金帳戶</div>
-          {usdAccounts.map(a => (
+          {loading ? (
+            <div style={{ fontSize: 12, color: '#9E9087', padding: '12px 0' }}>載入中...</div>
+          ) : usdAccounts.map(a => (
             <AccountRow key={a.id} account={a} onSave={handleSave} />
           ))}
         </div>
