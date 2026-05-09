@@ -161,13 +161,35 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
         await Promise.race([
           (async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (session?.user?.id) {
-              const { error } = await supabase
+            if (!session) throw new Error('請先登入')
+
+            // 更新主分類名稱，並取得 id
+            const { data: updated, error: updateError } = await supabase
+              .from('categories')
+              .update({ name: name.trim() })
+              .eq('name', item.cat)
+              .eq('user_id', session.user.id)
+              .select('id')
+              .single()
+            if (updateError) throw updateError
+
+            if (updated) {
+              // 刪除舊小分類，再重新插入
+              await supabase
                 .from('categories')
-                .update({ name: name.trim() })
-                .eq('name', item.cat)
+                .delete()
+                .eq('parent_id', updated.id)
                 .eq('user_id', session.user.id)
-              if (error) throw error
+
+              if (newSubs.length > 0) {
+                const subInserts = newSubs.map((sub, idx) => ({
+                  name: sub,
+                  user_id: session.user.id,
+                  parent_id: updated.id,
+                  sort_order: idx
+                }))
+                await supabase.from('categories').insert(subInserts)
+              }
             }
             onToast('ok', `「${name.trim()}」已儲存`)
           })(),
@@ -226,11 +248,36 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
         await Promise.race([
           (async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (session?.user?.id) {
-              const { error } = await supabase
+            if (!session) throw new Error('請先登入')
+
+            const { error: insertError } = await supabase
+              .from('categories')
+              .insert({
+                name: name.trim(),
+                user_id: session.user.id,
+                parent_id: null,
+                sort_order: 0
+              })
+            if (insertError) throw insertError
+
+            // Insert subcategories as child categories
+            if (newSubs.length > 0) {
+              const { data: parent } = await supabase
                 .from('categories')
-                .insert({ name: name.trim(), parent_id: null, user_id: session.user.id, sort_order: 0 })
-              if (error) throw error
+                .select('id')
+                .eq('name', name.trim())
+                .eq('user_id', session.user.id)
+                .single()
+
+              if (parent) {
+                const subInserts = newSubs.map((sub, idx) => ({
+                  name: sub,
+                  user_id: session.user.id,
+                  parent_id: parent.id,
+                  sort_order: idx
+                }))
+                await supabase.from('categories').insert(subInserts)
+              }
             }
             onToast('ok', `「${name.trim()}」已新增`)
           })(),
