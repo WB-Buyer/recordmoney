@@ -18,12 +18,14 @@ export default function App() {
       if (session) {
         console.log('[Auth] 已有 session：', session.user.id)
       }
-      setLoading(false)  // 唯一解除 loading 的地方，確保 session 已確認
+    }).finally(() => {
+      setLoading(false)  // 無論成功或失敗都解除 loading
     })
 
-    // 監聽後續登入/登出狀態變化（不再負責解除 loading）
+    // 監聽後續登入/登出狀態變化，也負責解除 loading（避免 getSession 慢於事件）
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        setLoading(false)  // 先解除 loading，不管是哪種事件
         if (event === 'SIGNED_IN' && session) {
           console.log('[Auth] 登入成功：', session.user.email)
           setSessionExpiry()
