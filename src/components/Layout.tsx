@@ -18,7 +18,7 @@ const bottomNavItems = [
   { to: '/',        label: '首頁', Icon: Home,       exact: true },
   { to: '/add',     label: '記帳', Icon: PenLine,    exact: false },
   { to: '/stats',   label: '投資', Icon: TrendingUp, exact: false },
-  { to: '/savings', label: '目標', Icon: Target,     exact: false },
+  { to: '/savings', label: '帳戶', Icon: Target,     exact: false },
   { to: '/settings',label: '設定', Icon: Settings,   exact: false },
 ]
 
