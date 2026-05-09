@@ -160,8 +160,13 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
         )
         await Promise.race([
           (async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) throw new Error('請先登入')
+            const { data: sessData } = await supabase.auth.getSession()
+            if (!sessData.session) {
+              onToast('err', '請先登入後再儲存分類')
+              setSaving(false)
+              return
+            }
+            const session = sessData.session
 
             // 更新主分類名稱，並取得 id
             const { data: updated, error: updateError } = await supabase
@@ -247,8 +252,13 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
         )
         await Promise.race([
           (async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) throw new Error('請先登入')
+            const { data: sessData } = await supabase.auth.getSession()
+            if (!sessData.session) {
+              onToast('err', '請先登入後再儲存分類')
+              setSaving(false)
+              return
+            }
+            const session = sessData.session
 
             const { error: insertError } = await supabase
               .from('categories')
@@ -812,12 +822,16 @@ function MagicLinkSection({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
+    // Check session immediately from localStorage
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) setUserEmail(session.user.email)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+
+    // Also listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUserEmail(session?.user?.email ?? null)
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
