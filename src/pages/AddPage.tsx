@@ -465,7 +465,14 @@ function RecordsTab() {
       const data = mode === 'month'
         ? getTransactionsByMonth(year, month)
         : getLocalTransactions().filter(r => r.date >= startDate && r.date <= endDate)
-      setRecords(data as unknown as Expense[])
+      const sorted = [...data].sort((a, b) => {
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
+        if (dateDiff !== 0) return dateDiff
+        const ac = (a as any).created_at ?? ''
+        const bc = (b as any).created_at ?? ''
+        return bc < ac ? -1 : bc > ac ? 1 : 0
+      })
+      setRecords(sorted as unknown as Expense[])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }, [mode, year, month, startDate, endDate])
