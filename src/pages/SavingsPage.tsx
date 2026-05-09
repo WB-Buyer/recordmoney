@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Pencil, Check, X } from 'lucide-react'
-import { getAccounts, updateAccountBalance, pullFromSupabase, type LocalAccount } from '../lib/localDB'
+import { getAccounts, pullFromSupabase, type LocalAccount } from '../lib/localDB'
 
 // ─── Toast ─────────────────────────────────────────────────────
 function Toast({ msg, type }: { msg: string; type: 'ok' | 'err' }) {
