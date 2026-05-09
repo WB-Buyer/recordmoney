@@ -98,22 +98,7 @@ export default function Layout() {
 
       {/* ── 電腦側欄 ── */}
       <aside className="desktop-sidebar">
-        {/* Logo */}
-        <div className="sidebar-logo">
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: '#2C2820', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0,
-          }}>
-            <span style={{ color: 'white', fontSize: 14, fontWeight: 700 }}>奶</span>
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2820', lineHeight: 1.2 }}>Molly's</div>
-            <div style={{ fontSize: 11, color: '#6B5E52', lineHeight: 1.2 }}>記帳本</div>
-          </div>
-        </div>
-
-        <div className="divider" style={{ margin: '0 12px 8px' }} />
+        <div className="divider" style={{ margin: '12px 12px 8px' }} />
 
         {/* 導覽 */}
         <nav className="sidebar-nav">
