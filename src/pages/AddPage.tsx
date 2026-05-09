@@ -186,11 +186,14 @@ function ManualTab() {
     const num = parseAmount(amountStr)
     if (!num) { showToast('err', '請輸入有效金額'); return }
     setLoading(true)
+    console.log('[handleSave] start, type:', type, 'amount:', num)
     try {
       // 信用卡付款時查詢 credit_card_id
       let credit_card_id: string | null = null
       if (type === 'expense' && payment === 'credit') {
-        const { data: cards } = await supabase.from('credit_cards').select('id, card_name')
+        console.log('[handleSave] fetching credit_cards...')
+        const { data: cards, error: cardErr } = await supabase.from('credit_cards').select('id, card_name')
+        console.log('[handleSave] credit_cards result:', cards, 'error:', cardErr)
         const match = (cards ?? []).find((c: { id: string; card_name: string }) => c.card_name === cardName)
         credit_card_id = match?.id ?? null
       }
@@ -210,15 +213,18 @@ function ManualTab() {
         credit_card_id,
       }
       if (note) payload.note = note
+      console.log('[handleSave] calling addTransaction with payload:', JSON.stringify(payload))
       await addTransaction(payload)
+      console.log('[handleSave] addTransaction succeeded')
       showToast('ok', '記帳成功！')
       setAmountStr('')
       setNote('')
       setTimeout(() => navigate('/add?tab=records'), 800)
     } catch (err: any) {
-      console.error('儲存失敗:', err)
+      console.error('[handleSave] 儲存失敗:', err)
       showToast('err', err.message ?? '儲存失敗，請重試')
     } finally {
+      console.log('[handleSave] finally: setLoading(false)')
       setLoading(false)
     }
   }

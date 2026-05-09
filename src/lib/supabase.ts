@@ -122,7 +122,9 @@ export async function getRecords(year?: number, month?: number) {
 }
 
 export async function insertRecord(record: ExpenseInsert) {
+  console.log('[insertRecord] start, category:', record.category, 'type:', record.type)
   const user_id = await getUserId()
+  console.log('[insertRecord] user_id:', user_id)
 
   // 問題 3：payment_method 映射
   const pm = record.payment_method === 'credit'   ? 'credit_card'
@@ -146,19 +148,25 @@ export async function insertRecord(record: ExpenseInsert) {
     source:           'manual',
   }
 
-  const { data, error } = await supabase
-    .from('transactions')   // 問題 3：records → transactions
+  console.log('[insertRecord] payload:', JSON.stringify(payload))
+
+  // 不加 .select().single()：避免 RETURNING 子句因 RLS 回傳 0 列
+  // 導致 .single() 永久 hang 或回傳 data=null 造成靜默失敗
+  const { error } = await supabase
+    .from('transactions')
     .insert(payload)
-    .select()
-    .single()
+
+  console.log('[insertRecord] insert done, error:', error)
   if (error) throw error
 
   return {
-    ...data,
-    category:    categoryIdToName(data.category_id),
-    subcategory: categoryIdToName(data.sub_category_id),
+    ...payload,
+    id: '',
+    created_at: new Date().toISOString(),
+    category:    categoryIdToName(payload.category_id as string | null),
+    subcategory: categoryIdToName(payload.sub_category_id as string | null),
     payment:     pm === 'credit_card' ? '信用卡' : pm === 'transfer' ? '匯款' : '現金',
-  } as Expense
+  } as unknown as Expense
 }
 
 export async function updateRecord(id: string, record: Partial<ExpenseInsert>) {
