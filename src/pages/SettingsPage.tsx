@@ -157,7 +157,7 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
       try {
         const { error } = await supabase
           .from('categories')
-          .upsert({ name: name.trim(), subcategories: newSubs }, { onConflict: 'name' })
+          .upsert({ name: name.trim() }, { onConflict: 'name' })
         if (error) throw error
         onToast('ok', `「${name.trim()}」已儲存`)
       } catch (e: any) {
@@ -208,7 +208,7 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
       try {
         const { error } = await supabase
           .from('categories')
-          .insert({ name: name.trim(), subcategories: newSubs })
+          .insert({ name: name.trim() })
         if (error) throw error
         onToast('ok', `「${name.trim()}」已新增`)
       } catch (e: any) {
