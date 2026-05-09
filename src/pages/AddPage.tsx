@@ -203,10 +203,10 @@ function ManualTab() {
       localAdd({
         date,
         amount: num,
-        type,
+        type: type as 'expense' | 'income',
         category: type === 'income' ? incomeCat : category,
         subcategory: type === 'income' ? '' : subcategory,
-        payment_method: type === 'income' ? 'cash' : payment,
+        payment_method: (type === 'income' ? 'cash' : payment) as string,
         payment: type === 'income'
           ? incomeAccount
           : payment === 'credit' ? cardName
