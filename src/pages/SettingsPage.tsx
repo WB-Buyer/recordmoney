@@ -153,13 +153,17 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
       const newSubs = subs.split('\n').map(s => s.trim()).filter(Boolean)
       // 先更新本地狀態
       setCats(prev => prev.map(c => c.cat === item.cat ? { cat: name.trim() as Category, subs: newSubs } : c))
-      // 寫入 Supabase
+      // 寫入 Supabase（只有登入時才同步）
       try {
-        const { error } = await supabase
-          .from('categories')
-          .update({ name: name.trim() })
-          .eq('name', item.cat)
-        if (error) throw error
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.id) {
+          const { error } = await supabase
+            .from('categories')
+            .update({ name: name.trim() })
+            .eq('name', item.cat)
+            .eq('user_id', session.user.id)
+          if (error) throw error
+        }
         onToast('ok', `「${name.trim()}」已儲存`)
       } catch (e: any) {
         onToast('err', '儲存失敗：' + (e.message ?? '資料表不存在或無權限'))
@@ -208,11 +212,12 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
       setCats(prev => [...prev, { cat: name.trim() as Category, subs: newSubs }])
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        const uid = session?.user?.id ?? null
-        const { error } = await supabase
-          .from('categories')
-          .insert({ name: name.trim(), parent_id: null, user_id: uid, sort_order: 0 })
-        if (error) throw error
+        if (session?.user?.id) {
+          const { error } = await supabase
+            .from('categories')
+            .insert({ name: name.trim(), parent_id: null, user_id: session.user.id, sort_order: 0 })
+          if (error) throw error
+        }
         onToast('ok', `「${name.trim()}」已新增`)
       } catch (e: any) {
         onToast('err', '新增失敗：' + (e.message ?? '資料表不存在或無權限'))
@@ -252,8 +257,11 @@ function CategoryManager({ onToast }: { onToast: (t: 'ok' | 'err', m: string) =>
     if (!confirm(`確定刪除「${cat}」分類？此操作無法還原。`)) return
     setCats(prev => prev.filter(c => c.cat !== cat))
     try {
-      const { error } = await supabase.from('categories').delete().eq('name', cat)
-      if (error) throw error
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.id) {
+        const { error } = await supabase.from('categories').delete().eq('name', cat).eq('user_id', session.user.id)
+        if (error) throw error
+      }
       onToast('ok', `「${cat}」已刪除`)
     } catch (e: any) {
       onToast('err', '刪除失敗：' + (e.message ?? ''))
